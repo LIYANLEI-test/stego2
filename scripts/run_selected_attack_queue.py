@@ -135,6 +135,8 @@ def attack_args(spec: SelectedAttack) -> list[str]:
             "--unmarker-iterations",
             iterations,
         ]
+    if spec.attack == "ads":
+        return ["--attack-kind", f"ads_{spec.factor}"]
     raise ValueError(f"unsupported selected attack: {spec.attack}")
 
 

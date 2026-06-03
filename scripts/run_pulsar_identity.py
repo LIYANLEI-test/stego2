@@ -30,7 +30,7 @@ from pulsar_native_utils import (  # noqa: E402
     ensure_hf_cache,
     load_official_pulsar,
 )
-from attack_common import attack_roundtrip_file, attack_suffix  # noqa: E402
+from attack_common import ADS_ATTACK_KINDS, attack_roundtrip_file, attack_suffix  # noqa: E402
 
 
 PROTOCOL_SEED = "stego-attack-native-identity-v1-20260522"
@@ -58,7 +58,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--hf-endpoint", default=DEFAULT_HF_ENDPOINT)
     parser.add_argument("--sage-bin", default="/data2/liyanlei/envs/stego_attack/bin/sage")
     parser.add_argument("--save-images", action="store_true")
-    parser.add_argument("--attack-kind", default="identity", choices=["identity", "resize", "storage", "jpeg", "mblur", "gblur", "regen_vae"])
+    parser.add_argument(
+        "--attack-kind",
+        default="identity",
+        choices=["identity", "resize", "storage", "jpeg", "mblur", "gblur", "regen_vae", *ADS_ATTACK_KINDS],
+    )
     parser.add_argument("--resize-factor", type=float, default=1.0)
     parser.add_argument("--attack-factor", type=float, default=None)
     parser.add_argument("--sample-dtype", default="uint16", choices=["uint8", "uint16"])

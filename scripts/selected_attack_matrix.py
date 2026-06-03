@@ -125,6 +125,33 @@ SELECTED_ATTACKS: tuple[SelectedAttack, ...] = (
     ),
     SelectedAttack(
         "pulsar",
+        "ads",
+        "resize224",
+        "ads_resize224",
+        "bit_accuracy",
+        "adapted_attack",
+        "ADS/Pulsar-paper resize-to-224 primitive adapted into the workspace Pulsar runner.",
+    ),
+    SelectedAttack(
+        "pulsar",
+        "ads",
+        "jpeg90",
+        "ads_jpeg90",
+        "bit_accuracy",
+        "adapted_attack",
+        "ADS/Pulsar-paper JPEG Q90 primitive adapted into the workspace Pulsar runner.",
+    ),
+    SelectedAttack(
+        "pulsar",
+        "ads",
+        "jpeg70",
+        "ads_jpeg70",
+        "bit_accuracy",
+        "adapted_attack",
+        "ADS/Pulsar-paper JPEG Q70 primitive adapted into the workspace Pulsar runner.",
+    ),
+    SelectedAttack(
+        "pulsar",
         "mblur",
         "3",
         "median_blur_k3",
@@ -185,4 +212,6 @@ def attack_provenance_for(spec: SelectedAttack) -> str:
         return "adapted_watermarkattacker_regen_vae"
     if spec.attack == "unmarker":
         return "adapted_unmarker_smoke"
+    if spec.attack == "ads":
+        return "adapted_ads_pulsar_paper"
     return "common_image_transform"

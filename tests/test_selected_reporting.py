@@ -96,6 +96,25 @@ class QualityAndTableTests(unittest.TestCase):
         gaussian_soft = np.asarray(attack_common.gaussian_blur_pil(image, 0.5))
         self.assertGreater(np.abs(gaussian_soft.astype(int) - array.astype(int)).sum(), 0)
 
+    def test_ads_attack_aliases_match_pulsar_paper_primitives(self) -> None:
+        array = np.zeros((16, 16, 3), dtype=np.uint8)
+        array[:, :8] = 255
+        image = Image.fromarray(array, "RGB")
+
+        ads_resize = np.asarray(attack_common.apply_attack_pil(image, "ads_resize224"))
+        expected_resize = np.asarray(attack_common.resize_roundtrip_pil(image, 224 / 256))
+        self.assertTrue(np.array_equal(ads_resize, expected_resize))
+
+        ads_jpeg = np.asarray(attack_common.apply_attack_pil(image, "ads_jpeg90"))
+        expected_jpeg = np.asarray(attack_common.jpeg_roundtrip_pil(image, 90))
+        self.assertTrue(np.array_equal(ads_jpeg, expected_jpeg))
+        self.assertEqual(attack_common.attack_suffix("ads_jpeg70"), "ads_jpeg70")
+
+    def test_selected_matrix_includes_ads_as_adapted_pulsar_candidate(self) -> None:
+        ads_rows = [item for item in SELECTED_ATTACKS if item.method == "pulsar" and item.attack == "ads"]
+        self.assertEqual({item.factor for item in ads_rows}, {"resize224", "jpeg90", "jpeg70"})
+        self.assertTrue(all(item.provenance == "adapted_attack" for item in ads_rows))
+
     def test_selector_requires_complete_psnr_and_lpips_coverage(self) -> None:
         good = {
             "scored_total": 2,

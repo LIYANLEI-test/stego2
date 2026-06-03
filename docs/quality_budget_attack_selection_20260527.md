@@ -35,11 +35,15 @@ median blur strength: 0.25, 0.5, 0.75 soft blend, plus kernels 3, 5, 7
 Gaussian blur strength: radius 0.25, 0.5, 0.75, 1, 1.5, 2, plus kernels 3, 5, 7
 Regen-VAE quality: 6, 5, 4, 3, 2, 1
 UnMarker: high-frequency smoke profile, 25 iterations, GSD only
+ADS/Pulsar-paper primitives: resize224, JPEG Q90, JPEG Q70, Pulsar only
 ```
 
 The original 2026-05-27 blur grid used only kernels 3, 5, and 7. On
 2026-05-29, softer blur strengths were added for GSD CIFAR10, MAS/GRDH, and
 MDDM-128 pilot after kernel 3 exceeded the quality budget on those methods.
+On 2026-06-04, ADS/Pulsar-paper attack primitives were added as Pulsar-only
+candidate aliases. They reuse the previously implemented paper-style Pulsar
+calibration settings: resize to 224 and JPEG Q90/Q70.
 
 The selection rule is per method and attack family: among parameters inside the
 quality budget, choose the strongest message-destruction setting. For bit
@@ -54,6 +58,11 @@ Storage/PNG round trip is treated as a control rather than a destructive
 attack candidate, so it is not selected here.
 
 ## Selected Parameters
+
+The table below records the completed historical 2026-05-27/2026-05-29
+calibration. ADS/Pulsar-paper aliases were wired into the candidate matrix on
+2026-06-04; they must be rerun before their PSNR/LPIPS and recovery metrics are
+reported as calibrated result rows.
 
 | Method | Attack | Selected parameter | Recovery metric | Stego-vs-attacked PSNR | LPIPS | Rows / failures |
 |--------|--------|--------------------|-----------------|------------------------|-------|-----------------|
@@ -135,6 +144,10 @@ attack candidate, so it is not selected here.
 - UnMarker is currently integrated only for GSD. It is an adapted attack-method
   candidate, not a hiding/steganography baseline and not a full paper
   reproduction.
+- ADS/Pulsar-paper aliases are adapted attack candidates, not a claim that the
+  workspace region/ECC Pulsar protocol is the same as the ADS paper's raw BER
+  protocol. The raw paper-protocol check remains in
+  `scripts/run_pulsar_paper_baseline.py`.
 - These are 10-sample calibration choices on sample indices `0-9`. Final paper
   tables rerun the selected parameters across the deterministic raw set but
   exclude `0-9` from formal estimates to prevent parameter-selection leakage.

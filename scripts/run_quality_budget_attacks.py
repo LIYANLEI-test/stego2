@@ -30,6 +30,7 @@ ATTACK_FACTORS = {
     "gblur": ["0.25", "0.5", "0.75", "1", "1.5", "2", "3", "5", "7"],
     "regen_vae": ["6", "5", "4", "3", "2", "1"],
     "unmarker": ["high_smoke_25"],
+    "ads": ["resize224", "jpeg90", "jpeg70"],
 }
 
 
@@ -55,7 +56,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--gpus", default="0,1,2,3")
     parser.add_argument("--count", type=int, default=10)
     parser.add_argument("--methods", default=",".join(METHODS))
-    parser.add_argument("--attacks", default="resize,jpeg,mblur,gblur,regen_vae")
+    parser.add_argument("--attacks", default="resize,jpeg,mblur,gblur,regen_vae,ads")
     parser.add_argument("--include-heavy", action="store_true", help="Include CRoSS calibration jobs.")
     parser.add_argument("--poll-seconds", type=float, default=10.0)
     parser.add_argument("--force", action="store_true")
@@ -114,6 +115,8 @@ def attack_args(job: Job) -> list[str]:
         return ["--attack-kind", "regen_vae", "--attack-factor", job.factor]
     if job.attack == "unmarker":
         return ["--attack-kind", "unmarker", "--unmarker-stage", "high", "--unmarker-profile", "smoke", "--unmarker-iterations", "25"]
+    if job.attack == "ads":
+        return ["--attack-kind", f"ads_{job.factor}"]
     raise ValueError(f"unsupported attack: {job.attack}")
 
 
@@ -214,6 +217,8 @@ def make_jobs(methods: list[str], attacks: list[str], count: int) -> list[Job]:
         for factor in ATTACK_FACTORS[attack]:
             for method in methods:
                 if attack == "unmarker" and method != "gsd_cifar10":
+                    continue
+                if attack == "ads" and method != "pulsar":
                     continue
                 if method == "pulsar" and attack in {"unmarker"}:
                     continue

@@ -13,6 +13,14 @@ from PIL import Image, ImageFilter
 
 
 RESIZE_INTERPOLATION = Image.Resampling.BILINEAR
+ADS_ATTACK_FACTORS = {
+    # ADS/Pulsar-paper attack primitives from the paper-style calibration
+    # runner: church-256, resize-to-224, and JPEG Q90/Q70.
+    "ads_resize224": ("resize", 224.0 / 256.0),
+    "ads_jpeg90": ("jpeg", 90.0),
+    "ads_jpeg70": ("jpeg", 70.0),
+}
+ADS_ATTACK_KINDS = tuple(ADS_ATTACK_FACTORS)
 
 
 def resize_roundtrip_pil(image: Image.Image, factor: float) -> Image.Image:
@@ -93,6 +101,8 @@ def attack_suffix(attack_kind: str, resize_factor: float = 1.0, attack_factor: f
         if attack_factor is None:
             return "regen_vae"
         return f"regen_vae_q{fmt(attack_factor)}"
+    if attack_kind in ADS_ATTACK_FACTORS:
+        return attack_kind
     raise ValueError(f"unsupported attack kind: {attack_kind}")
 
 
@@ -125,6 +135,12 @@ def apply_attack_pil(
 
         quality = int(round(attack_factor)) if attack_factor is not None else 3
         return apply_regen_vae_pil(image, quality=quality)
+    if attack_kind in ADS_ATTACK_FACTORS:
+        ads_kind, ads_factor = ADS_ATTACK_FACTORS[attack_kind]
+        if ads_kind == "resize":
+            return resize_roundtrip_pil(image, ads_factor)
+        if ads_kind == "jpeg":
+            return jpeg_roundtrip_pil(image, ads_factor)
     raise ValueError(f"unsupported attack kind: {attack_kind}")
 
 

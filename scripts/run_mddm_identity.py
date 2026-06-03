@@ -22,7 +22,7 @@ if str(MDDM_REF) not in sys.path:
 if str(WORKSPACE_ROOT / "scripts") not in sys.path:
     sys.path.insert(0, str(WORKSPACE_ROOT / "scripts"))
 
-from attack_common import apply_attack_pil, attack_suffix  # noqa: E402
+from attack_common import ADS_ATTACK_KINDS, apply_attack_pil, attack_suffix  # noqa: E402
 
 
 DEFAULT_PROTOCOL_DIR = Path("/data2/liyanlei/stego_attack_data/protocols/native_identity_v1_20260522")
@@ -47,7 +47,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--model-id", default="runwayml/stable-diffusion-v1-5")
     parser.add_argument("--hf-cache-dir", default="/data2/liyanlei/huggingface")
     parser.add_argument("--hf-endpoint", default="https://hf-mirror.com")
-    parser.add_argument("--attack-kind", default="identity", choices=["identity", "resize", "storage", "jpeg", "mblur", "gblur", "regen_vae"])
+    parser.add_argument(
+        "--attack-kind",
+        default="identity",
+        choices=["identity", "resize", "storage", "jpeg", "mblur", "gblur", "regen_vae", *ADS_ATTACK_KINDS],
+    )
     parser.add_argument("--resize-factor", type=float, default=1.0)
     parser.add_argument("--attack-factor", type=float, default=None)
     parser.add_argument("--force", action="store_true")

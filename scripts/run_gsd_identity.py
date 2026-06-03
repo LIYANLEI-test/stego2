@@ -37,7 +37,7 @@ from identity_common import (  # noqa: E402
     traceback_summary,
     utc_now,
 )
-from attack_common import attack_roundtrip_tensor_0_1, attack_suffix  # noqa: E402
+from attack_common import ADS_ATTACK_KINDS, attack_roundtrip_tensor_0_1, attack_suffix  # noqa: E402
 
 
 DEFAULT_GSD_ROOT = WORKSPACE_ROOT / "references" / "GSD"
@@ -64,7 +64,17 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--attack-kind",
         default="identity",
-        choices=["identity", "resize", "storage", "jpeg", "mblur", "gblur", "unmarker", "regen_vae"],
+        choices=[
+            "identity",
+            "resize",
+            "storage",
+            "jpeg",
+            "mblur",
+            "gblur",
+            "unmarker",
+            "regen_vae",
+            *ADS_ATTACK_KINDS,
+        ],
     )
     parser.add_argument("--resize-factor", type=float, default=1.0)
     parser.add_argument("--attack-factor", type=float, default=None)

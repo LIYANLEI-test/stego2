@@ -38,7 +38,7 @@ from identity_common import (  # noqa: E402
     traceback_summary,
     utc_now,
 )
-from attack_common import attack_roundtrip_tensor_minus1_1, attack_suffix  # noqa: E402
+from attack_common import ADS_ATTACK_KINDS, attack_roundtrip_tensor_minus1_1, attack_suffix  # noqa: E402
 
 
 DEFAULT_MAS_ROOT = WORKSPACE_ROOT / "references" / "mas_GRDH"
@@ -67,7 +67,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--bit-num", type=int, default=1)
     parser.add_argument("--attack-layer", default="identity")
     parser.add_argument("--attack-factor", type=float, default=0.0)
-    parser.add_argument("--attack-kind", default="native", choices=["native", "identity", "resize", "storage", "jpeg", "mblur", "gblur", "regen_vae"])
+    parser.add_argument(
+        "--attack-kind",
+        default="native",
+        choices=["native", "identity", "resize", "storage", "jpeg", "mblur", "gblur", "regen_vae", *ADS_ATTACK_KINDS],
+    )
     parser.add_argument("--resize-factor", type=float, default=1.0)
     parser.add_argument("--precision", default="autocast", choices=["full", "autocast"])
     parser.add_argument("--gpu", default="cuda:0")
@@ -275,7 +279,15 @@ def main() -> None:
                         stage = "attack_layer"
                         if args.attack_kind == "identity":
                             pass
-                        elif args.attack_kind in {"resize", "storage", "jpeg", "mblur", "gblur", "regen_vae"}:
+                        elif args.attack_kind in {
+                            "resize",
+                            "storage",
+                            "jpeg",
+                            "mblur",
+                            "gblur",
+                            "regen_vae",
+                            *ADS_ATTACK_KINDS,
+                        }:
                             factor = args.attack_factor if args.attack_kind in {"jpeg", "mblur", "gblur", "regen_vae"} else None
                             x0_samples = attack_roundtrip_tensor_minus1_1(
                                 x0_samples,
