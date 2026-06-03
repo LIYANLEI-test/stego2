@@ -20,7 +20,7 @@ import select_quality_budget_attacks as selector
 import summarize_attack_deltas as deltas
 import summarize_selected_attack_runs as summary
 import audit_selected_attack_results as audit
-from selected_attack_matrix import SELECTED_ATTACKS
+from selected_attack_matrix import SELECTED_ATTACKS, attack_provenance_for
 
 
 def write_rows(path: Path, rows: list[dict[str, object]]) -> None:
@@ -96,24 +96,26 @@ class QualityAndTableTests(unittest.TestCase):
         gaussian_soft = np.asarray(attack_common.gaussian_blur_pil(image, 0.5))
         self.assertGreater(np.abs(gaussian_soft.astype(int) - array.astype(int)).sum(), 0)
 
-    def test_ads_attack_aliases_match_pulsar_paper_primitives(self) -> None:
+    def test_ads_attack_kinds_are_paper_attack_variants(self) -> None:
         array = np.zeros((16, 16, 3), dtype=np.uint8)
         array[:, :8] = 255
         image = Image.fromarray(array, "RGB")
 
-        ads_resize = np.asarray(attack_common.apply_attack_pil(image, "ads_resize224"))
-        expected_resize = np.asarray(attack_common.resize_roundtrip_pil(image, 224 / 256))
-        self.assertTrue(np.array_equal(ads_resize, expected_resize))
+        self.assertEqual(attack_common.ADS_ATTACK_KINDS, ("ads_fgsm", "ads_qdir"))
+        self.assertEqual(attack_common.attack_suffix("ads_qdir", attack_factor=0.01), "ads_qdir_eps0_01")
+        with self.assertRaises(ValueError):
+            attack_common.apply_attack_pil(image, "ads_resize224")
 
-        ads_jpeg = np.asarray(attack_common.apply_attack_pil(image, "ads_jpeg90"))
-        expected_jpeg = np.asarray(attack_common.jpeg_roundtrip_pil(image, 90))
-        self.assertTrue(np.array_equal(ads_jpeg, expected_jpeg))
-        self.assertEqual(attack_common.attack_suffix("ads_jpeg70"), "ads_jpeg70")
-
-    def test_selected_matrix_includes_ads_as_adapted_pulsar_candidate(self) -> None:
-        ads_rows = [item for item in SELECTED_ATTACKS if item.method == "pulsar" and item.attack == "ads"]
-        self.assertEqual({item.factor for item in ads_rows}, {"resize224", "jpeg90", "jpeg70"})
+    def test_selected_matrix_includes_ads_as_adapted_attack_candidates(self) -> None:
+        ads_rows = [item for item in SELECTED_ATTACKS if item.attack in attack_common.ADS_ATTACK_KINDS]
+        self.assertEqual(
+            {item.method for item in ads_rows},
+            {"cross", "gsd_cifar10", "mas_grdh", "mddm_128_pilot", "pulsar"},
+        )
+        self.assertEqual({item.attack for item in ads_rows}, {"ads_fgsm", "ads_qdir"})
+        self.assertEqual({item.factor for item in ads_rows}, {"0.01"})
         self.assertTrue(all(item.provenance == "adapted_attack" for item in ads_rows))
+        self.assertTrue(all(attack_provenance_for(item) == "adapted_ads" for item in ads_rows))
 
     def test_selector_requires_complete_psnr_and_lpips_coverage(self) -> None:
         good = {

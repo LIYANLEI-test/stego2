@@ -301,7 +301,7 @@ def main() -> None:
                     stage = f"{args.attack_kind}_attack"
                     suffix = attack_suffix(args.attack_kind, args.resize_factor, args.attack_factor)
                     attacked_path = str(image_dir / f"{sample_index:06d}_{suffix}.png")
-                    if args.preserve_sample_dtype_attack:
+                    if args.preserve_sample_dtype_attack and args.attack_kind in {"storage", "resize", "jpeg", "mblur", "gblur"}:
                         native_bitdepth_attack_roundtrip_file(
                             Path(image_path),
                             Path(attacked_path),
@@ -343,7 +343,9 @@ def main() -> None:
                 "exact_match": recovered == message,
                 "attack_kind": args.attack_kind,
                 "resize_factor": args.resize_factor if args.attack_kind == "resize" else "",
-                "attack_factor": args.attack_factor if args.attack_kind in {"jpeg", "mblur", "gblur", "regen_vae"} else "",
+                "attack_factor": args.attack_factor
+                if args.attack_kind in {"jpeg", "mblur", "gblur", "regen_vae", *ADS_ATTACK_KINDS}
+                else "",
                 "sample_dtype": args.sample_dtype,
                 "image_path": image_path,
                 "attacked_path": attacked_path,
@@ -368,7 +370,9 @@ def main() -> None:
                 "payload_sha256": hashlib.sha256(message).hexdigest() if message else "",
                 "attack_kind": args.attack_kind,
                 "resize_factor": args.resize_factor if args.attack_kind == "resize" else "",
-                "attack_factor": args.attack_factor if args.attack_kind in {"jpeg", "mblur", "gblur", "regen_vae"} else "",
+                    "attack_factor": args.attack_factor
+                    if args.attack_kind in {"jpeg", "mblur", "gblur", "regen_vae", *ADS_ATTACK_KINDS}
+                    else "",
                 "sample_dtype": args.sample_dtype,
                 "image_path": image_path,
                 "attacked_path": attacked_path,
@@ -398,7 +402,9 @@ def main() -> None:
         "hist_bins": args.hist_bins,
         "attack_kind": args.attack_kind,
         "resize_factor": args.resize_factor if args.attack_kind == "resize" else None,
-        "attack_factor": args.attack_factor if args.attack_kind in {"jpeg", "mblur", "gblur", "regen_vae"} else None,
+        "attack_factor": args.attack_factor
+        if args.attack_kind in {"jpeg", "mblur", "gblur", "regen_vae", *ADS_ATTACK_KINDS}
+        else None,
         "sample_dtype": args.sample_dtype,
         "message_rule": "SHAKE256(protocol_seed | pulsar | sample_index | capacity_bytes)",
         "results_csv": str(csv_path),

@@ -171,7 +171,9 @@ def main() -> None:
                 "stego_path": str(stego_path),
                 "attack_kind": args.attack_kind,
                 "resize_factor": args.resize_factor if args.attack_kind == "resize" else "",
-                "attack_factor": args.attack_factor if args.attack_kind in {"jpeg", "mblur", "gblur", "regen_vae"} else "",
+                "attack_factor": args.attack_factor
+                if args.attack_kind in {"jpeg", "mblur", "gblur", "regen_vae", *ADS_ATTACK_KINDS}
+                else "",
                 "attacked_path": str(attacked_path) if attacked_path else "",
                 "attack_mse": attack_metrics.get("mse", ""),
                 "attack_psnr": attack_metrics.get("psnr", ""),
@@ -204,7 +206,9 @@ def main() -> None:
                     "sample_index": sample_index,
                     "attack_kind": args.attack_kind,
                     "resize_factor": args.resize_factor if args.attack_kind == "resize" else "",
-                    "attack_factor": args.attack_factor if args.attack_kind in {"jpeg", "mblur", "gblur", "regen_vae"} else "",
+                    "attack_factor": args.attack_factor
+                    if args.attack_kind in {"jpeg", "mblur", "gblur", "regen_vae", *ADS_ATTACK_KINDS}
+                    else "",
                     "image_path": str(secret_path) if secret_path else "",
                     "stego_path": str(stego_path) if stego_path else "",
                     "attacked_path": str(attacked_path) if attacked_path else "",
@@ -232,7 +236,9 @@ def main() -> None:
         "num_steps": args.num_steps,
         "attack_kind": args.attack_kind,
         "resize_factor": args.resize_factor if args.attack_kind == "resize" else None,
-        "attack_factor": args.attack_factor if args.attack_kind in {"jpeg", "mblur", "gblur", "regen_vae"} else None,
+        "attack_factor": args.attack_factor
+        if args.attack_kind in {"jpeg", "mblur", "gblur", "regen_vae", *ADS_ATTACK_KINDS}
+        else None,
         "results_csv": str(csv_path),
         "failures_csv": str(failures_path),
         "created_at_utc": utc_now(),

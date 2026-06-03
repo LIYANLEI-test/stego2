@@ -32,6 +32,11 @@ BASELINE_PROVENANCE = {
 # Attack parameters were selected on these sample IDs in the calibration grid.
 # Formal paper summaries exclude them to avoid selection/test leakage.
 CALIBRATION_SAMPLE_COUNT = 10
+ADS_SELECTED_EPSILON = "0.01"
+ADS_CANDIDATE_NOTE = (
+    "ADS attack-method candidate; epsilon 0.01 is a queue default and must be "
+    "calibrated under the shared PSNR/LPIPS budget before paper reporting."
+)
 
 
 @dataclass(frozen=True)
@@ -53,12 +58,37 @@ class SelectedAttack:
         return f"{self.attack}_{self.safe_factor}"
 
 
+def ads_candidates(method: str, metric: str, note: str = "") -> tuple[SelectedAttack, SelectedAttack]:
+    full_note = ADS_CANDIDATE_NOTE if not note else f"{ADS_CANDIDATE_NOTE} {note}"
+    return (
+        SelectedAttack(
+            method,
+            "ads_fgsm",
+            ADS_SELECTED_EPSILON,
+            "ads_fgsm_eps0_01",
+            metric,
+            "adapted_attack",
+            full_note,
+        ),
+        SelectedAttack(
+            method,
+            "ads_qdir",
+            ADS_SELECTED_EPSILON,
+            "ads_qdir_eps0_01",
+            metric,
+            "adapted_attack",
+            full_note,
+        ),
+    )
+
+
 SELECTED_ATTACKS: tuple[SelectedAttack, ...] = (
     SelectedAttack("cross", "resize", "1.5", "resize_1_5", "recovery_psnr", "native_official"),
     SelectedAttack("cross", "jpeg", "50", "jpeg_q50", "recovery_psnr", "native_official"),
     SelectedAttack("cross", "mblur", "3", "median_blur_k3", "recovery_psnr", "native_official"),
     SelectedAttack("cross", "gblur", "3", "gaussian_blur_k3", "recovery_psnr", "native_official"),
     SelectedAttack("cross", "regen_vae", "5", "regen_vae_q5", "recovery_psnr", "adapted_attack"),
+    *ads_candidates("cross", "recovery_psnr"),
     SelectedAttack("gsd_cifar10", "resize", "1.25", "resize_1_25", "bit_accuracy", "native_official"),
     SelectedAttack("gsd_cifar10", "jpeg", "80", "jpeg_q80", "bit_accuracy", "native_official"),
     SelectedAttack("gsd_cifar10", "mblur", "0.5", "median_blur_soft_0_5", "bit_accuracy", "native_official"),
@@ -73,11 +103,13 @@ SELECTED_ATTACKS: tuple[SelectedAttack, ...] = (
         "adapted_attack",
         "GSD-only smoke-profile UnMarker candidate.",
     ),
+    *ads_candidates("gsd_cifar10", "bit_accuracy"),
     SelectedAttack("mas_grdh", "resize", "1.5", "resize_1_5", "bit_accuracy", "native_official"),
     SelectedAttack("mas_grdh", "jpeg", "50", "jpeg_q50", "bit_accuracy", "native_official"),
     SelectedAttack("mas_grdh", "mblur", "0.5", "median_blur_soft_0_5", "bit_accuracy", "native_official"),
     SelectedAttack("mas_grdh", "gblur", "0.5", "gaussian_blur_radius_0_5", "bit_accuracy", "native_official"),
     SelectedAttack("mas_grdh", "regen_vae", "6", "regen_vae_q6", "bit_accuracy", "adapted_attack"),
+    *ads_candidates("mas_grdh", "bit_accuracy"),
     SelectedAttack(
         "mddm_128_pilot",
         "jpeg",
@@ -105,6 +137,7 @@ SELECTED_ATTACKS: tuple[SelectedAttack, ...] = (
         "native_third_party",
         "Pilot only; not official author code.",
     ),
+    *ads_candidates("mddm_128_pilot", "bit_accuracy", "Pilot only; not official author code."),
     SelectedAttack(
         "pulsar",
         "resize",
@@ -123,33 +156,7 @@ SELECTED_ATTACKS: tuple[SelectedAttack, ...] = (
         "native_official",
         "Calibration produced native reveal failures within quality budget.",
     ),
-    SelectedAttack(
-        "pulsar",
-        "ads",
-        "resize224",
-        "ads_resize224",
-        "bit_accuracy",
-        "adapted_attack",
-        "ADS/Pulsar-paper resize-to-224 primitive adapted into the workspace Pulsar runner.",
-    ),
-    SelectedAttack(
-        "pulsar",
-        "ads",
-        "jpeg90",
-        "ads_jpeg90",
-        "bit_accuracy",
-        "adapted_attack",
-        "ADS/Pulsar-paper JPEG Q90 primitive adapted into the workspace Pulsar runner.",
-    ),
-    SelectedAttack(
-        "pulsar",
-        "ads",
-        "jpeg70",
-        "ads_jpeg70",
-        "bit_accuracy",
-        "adapted_attack",
-        "ADS/Pulsar-paper JPEG Q70 primitive adapted into the workspace Pulsar runner.",
-    ),
+    *ads_candidates("pulsar", "bit_accuracy"),
     SelectedAttack(
         "pulsar",
         "mblur",
@@ -212,6 +219,6 @@ def attack_provenance_for(spec: SelectedAttack) -> str:
         return "adapted_watermarkattacker_regen_vae"
     if spec.attack == "unmarker":
         return "adapted_unmarker_smoke"
-    if spec.attack == "ads":
-        return "adapted_ads_pulsar_paper"
+    if spec.attack in {"ads_fgsm", "ads_qdir"}:
+        return "adapted_ads"
     return "common_image_transform"
