@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Run paper-style Pulsar resize/JPEG calibration attacks.
+"""Run paper-style Pulsar gateway-sanitization attacks.
 
 This runner intentionally uses the official raw Pulsar generate/reveal path
 instead of the region/ECC identity protocol. It is for checking whether basic
 Pulsar behavior is in the same regime as ADS-style papers that report BER-based
-failure under resize/JPEG attacks.
+failure under resize/JPEG/blur/ADS attacks.
 """
 
 from __future__ import annotations
@@ -40,7 +40,7 @@ from pulsar_native_utils import (  # noqa: E402
 
 PROTOCOL_SEED = "pulsar-paper-baseline-v1-20260528"
 PAPER_SUCCESS_BER_THRESHOLD = 0.48
-DEFAULT_ATTACKS = "identity,resize224,jpeg90,jpeg70"
+DEFAULT_ATTACKS = "identity,jpeg90,jpeg70,resize224,blur0.5,blur1.0,diffusion1step,ads_fgsm0.01,ads_qdir0.01"
 PULSAR_REPOS = {
     "church": "google/ddpm-church-256",
     "celebahq": "google/ddpm-celebahq-256",
@@ -86,8 +86,11 @@ def attack_specs(specs: str) -> list[dict[str, object]]:
         spec = raw.strip().lower()
         if not spec:
             continue
+        normalized = spec.replace("-", "_")
         if spec == "identity":
             out.append({"label": "identity", "kind": "identity", "factor": None})
+        elif spec in {"diffusion", "diffusion1step", "diffusion_1step"}:
+            out.append({"label": "diffusion_1step_t1_eps0", "kind": "diffusion_1step", "factor": 0.0})
         elif spec == "resize224":
             out.append({"label": "resize_224", "kind": "resize", "factor": 224 / 256})
         elif spec.startswith("resize"):
@@ -97,6 +100,17 @@ def attack_specs(specs: str) -> list[dict[str, object]]:
         elif spec.startswith("jpeg"):
             quality = float(spec.removeprefix("jpeg").removeprefix("_q").removeprefix("q"))
             out.append({"label": f"jpeg_q{quality:g}".replace(".", "_"), "kind": "jpeg", "factor": quality})
+        elif spec.startswith("blur") or spec.startswith("gblur"):
+            sigma = float(spec.removeprefix("gblur").removeprefix("blur"))
+            out.append({"label": f"blur_sigma{sigma:g}".replace(".", "_"), "kind": "gblur", "factor": sigma})
+        elif normalized.startswith("ads_fgsm") or normalized.startswith("ads_qdir"):
+            variant = "fgsm" if normalized.startswith("ads_fgsm") else "qdir"
+            raw_eps = normalized.removeprefix(f"ads_{variant}").removeprefix("_").removeprefix("eps")
+            epsilon = float(raw_eps) if raw_eps else 0.01
+            kind = f"ads_{variant}"
+            out.append({"label": f"{kind}_eps{epsilon:g}".replace(".", "_"), "kind": kind, "factor": epsilon})
+        elif normalized.startswith("ads"):
+            raise ValueError(f"unknown ADS attack spec: {raw}; use ads_fgsm or ads_qdir")
         else:
             raise ValueError(f"unknown attack spec: {raw}")
     if not out:
@@ -160,6 +174,12 @@ def apply_attack(hidden: torch.Tensor, spec: dict[str, object]) -> torch.Tensor:
         return attack_roundtrip_tensor_minus1_1(hidden, "resize", resize_factor=float(spec["factor"]))
     if kind == "jpeg":
         return attack_roundtrip_tensor_minus1_1(hidden, "jpeg", attack_factor=float(spec["factor"]))
+    if kind == "gblur":
+        return attack_roundtrip_tensor_minus1_1(hidden, "gblur", attack_factor=float(spec["factor"]))
+    if kind == "diffusion_1step":
+        return attack_roundtrip_tensor_minus1_1(hidden, "ads_qdir", attack_factor=0.0)
+    if kind in {"ads_fgsm", "ads_qdir"}:
+        return attack_roundtrip_tensor_minus1_1(hidden, kind, attack_factor=float(spec["factor"]))
     raise ValueError(f"unsupported attack kind: {kind}")
 
 
@@ -187,6 +207,7 @@ def summarize(rows: list[dict[str, object]], out_dir: Path, ber_threshold: float
         failures = sum(1 for row in subset if str(row["paper_failure"]).lower() == "true")
         exact = sum(1 for row in subset if str(row["exact_match"]).lower() == "true")
         psnrs = [float(row["psnr"]) for row in subset if row["psnr"] != "inf"]
+        ssims = [float(row["ssim"]) for row in subset if row["ssim"] != ""]
         lpips_values = [float(row["lpips"]) for row in subset if row["lpips"] != ""]
         bers = [float(row["ber"]) for row in subset]
         summary_rows.append(
@@ -199,6 +220,7 @@ def summarize(rows: list[dict[str, object]], out_dir: Path, ber_threshold: float
                 "exact_match_rate": exact / len(subset) if subset else "",
                 "ber_mean": mean(bers),
                 "psnr_mean": "inf" if label == "identity" else mean(psnrs),
+                "ssim_mean": mean(ssims),
                 "lpips_mean": mean(lpips_values),
             }
         )
@@ -215,15 +237,16 @@ def summarize(rows: list[dict[str, object]], out_dir: Path, ber_threshold: float
         "",
         f"Paper success threshold: BER <= {ber_threshold:g}.",
         "",
-        "| Attack | Records | Paper failures | Failure rate | Exact matches | BER mean | PSNR | LPIPS |",
-        "|---|---:|---:|---:|---:|---:|---:|---:|",
+        "| Attack | Records | Paper failures | Failure rate | Exact matches | BER mean | PSNR | SSIM | LPIPS |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for row in summary_rows:
         lines.append(
             "| {attack_label} | {records} | {paper_failures} | {paper_failure_rate:.6f} | "
-            "{exact_matches} | {ber_mean:.6f} | {psnr} | {lpips} |".format(
+            "{exact_matches} | {ber_mean:.6f} | {psnr} | {ssim} | {lpips} |".format(
                 **row,
                 psnr=format_float(row["psnr_mean"]),
+                ssim=format_float(row["ssim_mean"]),
                 lpips=format_float(row["lpips_mean"]),
             )
         )
@@ -319,7 +342,7 @@ def main() -> None:
 
     manifest = {
         "method": "pulsar_raw_paper",
-        "protocol_id": "pulsar_paper_resize_jpeg_v1_20260528",
+        "protocol_id": "pulsar_paper_ads_v2_20260604",
         "protocol_seed": PROTOCOL_SEED,
         "count": args.count,
         "model_repo": repo,

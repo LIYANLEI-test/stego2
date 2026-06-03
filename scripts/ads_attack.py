@@ -142,14 +142,15 @@ def apply_ads_pil(
     generator = torch.Generator(device=device_obj)
     generator.manual_seed(seed)
     noise = torch.randn(x0.shape, generator=generator, device=device_obj, dtype=x0.dtype)
-    x_t = (sqrt_alpha * x0 + sqrt_one_minus_alpha * noise).detach().requires_grad_(True)
     timestep_tensor = torch.tensor([timestep], device=device_obj, dtype=torch.long)
 
-    eps_pred = unet(x_t, timestep_tensor).sample
-    x0_hat = (x_t - sqrt_one_minus_alpha * eps_pred) / sqrt_alpha
-    loss = F.mse_loss(x0_hat, x0)
-    grad = torch.autograd.grad(loss, x_t)[0]
-    x_t_adv = (x_t + _ads_update(grad, variant, float(epsilon))).detach()
+    with torch.enable_grad():
+        x_t = (sqrt_alpha * x0 + sqrt_one_minus_alpha * noise).detach().requires_grad_(True)
+        eps_pred = unet(x_t, timestep_tensor).sample
+        x0_hat = (x_t - sqrt_one_minus_alpha * eps_pred) / sqrt_alpha
+        loss = F.mse_loss(x0_hat, x0)
+        grad = torch.autograd.grad(loss, x_t)[0]
+        x_t_adv = (x_t + _ads_update(grad, variant, float(epsilon))).detach()
 
     with torch.no_grad():
         eps_adv = unet(x_t_adv, timestep_tensor).sample
