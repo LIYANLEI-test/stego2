@@ -24,14 +24,14 @@ TORCH_HOME = Path("/data2/liyanlei/torch")
 METHODS = ["gsd_cifar10", "mas_grdh", "mddm_128_pilot", "pulsar"]
 HEAVY_METHODS = ["cross"]
 ATTACK_FACTORS = {
-    "resize": ["0.5", "0.75", "1.25", "1.5"],
-    "jpeg": ["95", "90", "80", "70", "50"],
-    "mblur": ["0.25", "0.5", "0.75", "3", "5", "7"],
-    "gblur": ["0.25", "0.5", "0.75", "1", "1.5", "2", "3", "5", "7"],
+    "resize": ["0.25", "0.375", "0.5", "0.75", "1.25", "1.5"],
+    "jpeg": ["20", "30", "40", "50", "70", "80", "90", "95"],
+    "mblur": ["0.25", "0.5", "0.75", "3", "5", "7", "9", "11", "13"],
+    "gblur": ["0.25", "0.5", "0.75", "1", "1.5", "2", "3", "5", "7", "9", "11", "13"],
     "regen_vae": ["6", "5", "4", "3", "2", "1"],
-    "unmarker": ["high_smoke_25"],
-    "ads_fgsm": ["0.005", "0.01", "0.02"],
-    "ads_qdir": ["0.005", "0.01", "0.02"],
+    "unmarker": ["high_smoke_25", "high_smoke_100"],
+    "ads_fgsm": ["0.005", "0.01", "0.02", "0.04", "0.06", "0.08"],
+    "ads_qdir": ["0.005", "0.01", "0.02", "0.04", "0.06", "0.08", "0.10"],
 }
 
 
@@ -101,8 +101,18 @@ def base_env(gpu: str) -> dict[str, str]:
     env["DIFFUSERS_CACHE"] = str(HF_HOME / "diffusers")
     env["HF_ENDPOINT"] = "https://hf-mirror.com"
     env["TORCH_HOME"] = str(TORCH_HOME)
+    env["ADS_LOCAL_FILES_ONLY"] = "1"
+    env["ADS_TIMESTEP"] = "1"
     env["PATH"] = f"{ENV_BIN}:{env.get('PATH', '')}"
     return env
+
+
+def unmarker_args(factor: str) -> list[str]:
+    parts = factor.split("_")
+    if len(parts) != 3:
+        raise ValueError(f"unmarker factor must be <stage>_<profile>_<iterations>, got {factor!r}")
+    stage, profile, iterations = parts
+    return ["--unmarker-stage", stage, "--unmarker-profile", profile, "--unmarker-iterations", iterations]
 
 
 def attack_args(job: Job) -> list[str]:
@@ -115,7 +125,7 @@ def attack_args(job: Job) -> list[str]:
             return ["--attack-kind", "regen_vae", "--regen-quality", job.factor]
         return ["--attack-kind", "regen_vae", "--attack-factor", job.factor]
     if job.attack == "unmarker":
-        return ["--attack-kind", "unmarker", "--unmarker-stage", "high", "--unmarker-profile", "smoke", "--unmarker-iterations", "25"]
+        return ["--attack-kind", "unmarker", *unmarker_args(job.factor)]
     if job.attack in {"ads_fgsm", "ads_qdir"}:
         return ["--attack-kind", job.attack, "--attack-factor", job.factor]
     raise ValueError(f"unsupported attack: {job.attack}")
@@ -217,10 +227,6 @@ def make_jobs(methods: list[str], attacks: list[str], count: int) -> list[Job]:
             raise ValueError(f"unsupported attack: {attack}")
         for factor in ATTACK_FACTORS[attack]:
             for method in methods:
-                if attack == "unmarker" and method != "gsd_cifar10":
-                    continue
-                if method == "pulsar" and attack in {"unmarker"}:
-                    continue
                 jobs.append(Job(method=method, attack=attack, factor=factor, count=count))
     return jobs
 

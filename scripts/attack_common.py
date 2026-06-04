@@ -106,6 +106,10 @@ def apply_attack_pil(
     attack_kind: str,
     resize_factor: float = 1.0,
     attack_factor: float | None = None,
+    unmarker_stage: str = "high",
+    unmarker_profile: str = "smoke",
+    unmarker_iterations: int | None = None,
+    unmarker_reference_dir: str | Path | None = None,
 ) -> Image.Image:
     if attack_kind == "identity":
         return image.convert("RGB")
@@ -130,6 +134,17 @@ def apply_attack_pil(
 
         quality = int(round(attack_factor)) if attack_factor is not None else 3
         return apply_regen_vae_pil(image, quality=quality)
+    if attack_kind == "unmarker":
+        from unmarker_attack import apply_unmarker_core_pil
+
+        kwargs = {
+            "stage": unmarker_stage,
+            "profile": unmarker_profile,
+            "max_iterations": unmarker_iterations,
+        }
+        if unmarker_reference_dir is not None:
+            kwargs["unmarker_root"] = Path(unmarker_reference_dir).resolve()
+        return apply_unmarker_core_pil(image, **kwargs)
     if attack_kind in ADS_ATTACK_KINDS:
         from ads_attack import apply_ads_pil
 
@@ -153,12 +168,20 @@ def attack_roundtrip_array_rgb(
     attack_kind: str,
     resize_factor: float = 1.0,
     attack_factor: float | None = None,
+    unmarker_stage: str = "high",
+    unmarker_profile: str = "smoke",
+    unmarker_iterations: int | None = None,
+    unmarker_reference_dir: str | Path | None = None,
 ) -> np.ndarray:
     attacked = apply_attack_pil(
         Image.fromarray(image.astype(np.uint8), "RGB"),
         attack_kind,
         resize_factor=resize_factor,
         attack_factor=attack_factor,
+        unmarker_stage=unmarker_stage,
+        unmarker_profile=unmarker_profile,
+        unmarker_iterations=unmarker_iterations,
+        unmarker_reference_dir=unmarker_reference_dir,
     )
     return np.asarray(attacked, dtype=np.uint8)
 
@@ -181,6 +204,10 @@ def attack_roundtrip_file(
     attack_kind: str,
     resize_factor: float = 1.0,
     attack_factor: float | None = None,
+    unmarker_stage: str = "high",
+    unmarker_profile: str = "smoke",
+    unmarker_iterations: int | None = None,
+    unmarker_reference_dir: str | Path | None = None,
 ) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     attacked = apply_attack_pil(
@@ -188,6 +215,10 @@ def attack_roundtrip_file(
         attack_kind,
         resize_factor=resize_factor,
         attack_factor=attack_factor,
+        unmarker_stage=unmarker_stage,
+        unmarker_profile=unmarker_profile,
+        unmarker_iterations=unmarker_iterations,
+        unmarker_reference_dir=unmarker_reference_dir,
     )
     attacked.save(output_path)
 
@@ -228,6 +259,10 @@ def attack_roundtrip_tensor_minus1_1(
     attack_kind: str,
     resize_factor: float = 1.0,
     attack_factor: float | None = None,
+    unmarker_stage: str = "high",
+    unmarker_profile: str = "smoke",
+    unmarker_iterations: int | None = None,
+    unmarker_reference_dir: str | Path | None = None,
 ) -> torch.Tensor:
     if tensor_bchw.ndim != 4 or tensor_bchw.shape[0] != 1 or tensor_bchw.shape[1] != 3:
         raise ValueError(f"expected tensor shape [1,3,H,W], got {tuple(tensor_bchw.shape)}")
@@ -236,6 +271,10 @@ def attack_roundtrip_tensor_minus1_1(
         attack_kind,
         resize_factor=resize_factor,
         attack_factor=attack_factor,
+        unmarker_stage=unmarker_stage,
+        unmarker_profile=unmarker_profile,
+        unmarker_iterations=unmarker_iterations,
+        unmarker_reference_dir=unmarker_reference_dir,
     )
     return pil_to_tensor_minus1_1(attacked, tensor_bchw.device, tensor_bchw.dtype)
 
@@ -275,6 +314,10 @@ def attack_roundtrip_tensor_0_1(
     attack_kind: str,
     resize_factor: float = 1.0,
     attack_factor: float | None = None,
+    unmarker_stage: str = "high",
+    unmarker_profile: str = "smoke",
+    unmarker_iterations: int | None = None,
+    unmarker_reference_dir: str | Path | None = None,
 ) -> torch.Tensor:
     if tensor_bchw.ndim != 4 or tensor_bchw.shape[0] != 1 or tensor_bchw.shape[1] != 3:
         raise ValueError(f"expected tensor shape [1,3,H,W], got {tuple(tensor_bchw.shape)}")
@@ -283,5 +326,9 @@ def attack_roundtrip_tensor_0_1(
         attack_kind,
         resize_factor=resize_factor,
         attack_factor=attack_factor,
+        unmarker_stage=unmarker_stage,
+        unmarker_profile=unmarker_profile,
+        unmarker_iterations=unmarker_iterations,
+        unmarker_reference_dir=unmarker_reference_dir,
     )
     return pil_to_tensor_0_1(attacked, tensor_bchw.device, tensor_bchw.dtype)

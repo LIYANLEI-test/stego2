@@ -50,10 +50,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--attack-kind",
         default="identity",
-        choices=["identity", "resize", "storage", "jpeg", "mblur", "gblur", "regen_vae", *ADS_ATTACK_KINDS],
+        choices=["identity", "resize", "storage", "jpeg", "mblur", "gblur", "regen_vae", "unmarker", *ADS_ATTACK_KINDS],
     )
     parser.add_argument("--resize-factor", type=float, default=1.0)
     parser.add_argument("--attack-factor", type=float, default=None)
+    parser.add_argument("--unmarker-stage", default="high", choices=["high", "low"])
+    parser.add_argument("--unmarker-profile", default="smoke", choices=["smoke", "paper_like"])
+    parser.add_argument("--unmarker-iterations", type=int, default=25)
+    parser.add_argument("--unmarker-reference-dir", default=str(WORKSPACE_ROOT / "references" / "ai-watermark"))
     parser.add_argument("--force", action="store_true")
     return parser.parse_args()
 
@@ -212,6 +216,10 @@ def main() -> None:
                     args.attack_kind,
                     resize_factor=args.resize_factor,
                     attack_factor=args.attack_factor,
+                    unmarker_stage=args.unmarker_stage,
+                    unmarker_profile=args.unmarker_profile,
+                    unmarker_iterations=args.unmarker_iterations,
+                    unmarker_reference_dir=Path(args.unmarker_reference_dir).resolve(),
                 )
                 suffix = attack_suffix(args.attack_kind, args.resize_factor, args.attack_factor)
                 attacked_path = str(image_dir / f"{generated['image_id']}_{suffix}.png")
@@ -239,6 +247,9 @@ def main() -> None:
                 "attack_factor": args.attack_factor
                 if args.attack_kind in {"jpeg", "mblur", "gblur", "regen_vae", *ADS_ATTACK_KINDS}
                 else "",
+                "unmarker_stage": args.unmarker_stage if args.attack_kind == "unmarker" else "",
+                "unmarker_profile": args.unmarker_profile if args.attack_kind == "unmarker" else "",
+                "unmarker_iterations": args.unmarker_iterations if args.attack_kind == "unmarker" else "",
                 "image_path": record["image_path"],
                 "attacked_path": attacked_path,
                 "record_path": str(record_path),
@@ -261,6 +272,9 @@ def main() -> None:
                     "attack_factor": args.attack_factor
                     if args.attack_kind in {"jpeg", "mblur", "gblur", "regen_vae", *ADS_ATTACK_KINDS}
                     else "",
+                    "unmarker_stage": args.unmarker_stage if args.attack_kind == "unmarker" else "",
+                    "unmarker_profile": args.unmarker_profile if args.attack_kind == "unmarker" else "",
+                    "unmarker_iterations": args.unmarker_iterations if args.attack_kind == "unmarker" else "",
                     "image_path": str(record.get("image_path", "")),
                     "attacked_path": attacked_path,
                     "stage": stage,
@@ -287,6 +301,9 @@ def main() -> None:
         "attack_factor": args.attack_factor
         if args.attack_kind in {"jpeg", "mblur", "gblur", "regen_vae", *ADS_ATTACK_KINDS}
         else None,
+        "unmarker_stage": args.unmarker_stage if args.attack_kind == "unmarker" else None,
+        "unmarker_profile": args.unmarker_profile if args.attack_kind == "unmarker" else None,
+        "unmarker_iterations": args.unmarker_iterations if args.attack_kind == "unmarker" else None,
         "model_id": args.model_id,
         "payload_file": str(protocol_dir / "mddm_messages_500.jsonl"),
         "prompt_file": str(protocol_dir / "prompts_500.txt"),

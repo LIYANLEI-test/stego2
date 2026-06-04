@@ -61,10 +61,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--attack-kind",
         default="identity",
-        choices=["identity", "resize", "storage", "jpeg", "mblur", "gblur", "regen_vae", *ADS_ATTACK_KINDS],
+        choices=["identity", "resize", "storage", "jpeg", "mblur", "gblur", "regen_vae", "unmarker", *ADS_ATTACK_KINDS],
     )
     parser.add_argument("--resize-factor", type=float, default=1.0)
     parser.add_argument("--attack-factor", type=float, default=None)
+    parser.add_argument("--unmarker-stage", default="high", choices=["high", "low"])
+    parser.add_argument("--unmarker-profile", default="smoke", choices=["smoke", "paper_like"])
+    parser.add_argument("--unmarker-iterations", type=int, default=25)
+    parser.add_argument("--unmarker-reference-dir", default=str(WORKSPACE_ROOT / "references" / "ai-watermark"))
     parser.add_argument("--sample-dtype", default="uint16", choices=["uint8", "uint16"])
     parser.add_argument(
         "--preserve-sample-dtype-attack",
@@ -317,6 +321,10 @@ def main() -> None:
                             args.attack_kind,
                             resize_factor=args.resize_factor,
                             attack_factor=args.attack_factor,
+                            unmarker_stage=args.unmarker_stage,
+                            unmarker_profile=args.unmarker_profile,
+                            unmarker_iterations=args.unmarker_iterations,
+                            unmarker_reference_dir=Path(args.unmarker_reference_dir).resolve(),
                         )
                     load_path = attacked_path
                 stage = "load_attacked_image"
@@ -346,6 +354,9 @@ def main() -> None:
                 "attack_factor": args.attack_factor
                 if args.attack_kind in {"jpeg", "mblur", "gblur", "regen_vae", *ADS_ATTACK_KINDS}
                 else "",
+                "unmarker_stage": args.unmarker_stage if args.attack_kind == "unmarker" else "",
+                "unmarker_profile": args.unmarker_profile if args.attack_kind == "unmarker" else "",
+                "unmarker_iterations": args.unmarker_iterations if args.attack_kind == "unmarker" else "",
                 "sample_dtype": args.sample_dtype,
                 "image_path": image_path,
                 "attacked_path": attacked_path,
@@ -373,6 +384,9 @@ def main() -> None:
                     "attack_factor": args.attack_factor
                     if args.attack_kind in {"jpeg", "mblur", "gblur", "regen_vae", *ADS_ATTACK_KINDS}
                     else "",
+                "unmarker_stage": args.unmarker_stage if args.attack_kind == "unmarker" else "",
+                "unmarker_profile": args.unmarker_profile if args.attack_kind == "unmarker" else "",
+                "unmarker_iterations": args.unmarker_iterations if args.attack_kind == "unmarker" else "",
                 "sample_dtype": args.sample_dtype,
                 "image_path": image_path,
                 "attacked_path": attacked_path,
@@ -405,6 +419,9 @@ def main() -> None:
         "attack_factor": args.attack_factor
         if args.attack_kind in {"jpeg", "mblur", "gblur", "regen_vae", *ADS_ATTACK_KINDS}
         else None,
+        "unmarker_stage": args.unmarker_stage if args.attack_kind == "unmarker" else None,
+        "unmarker_profile": args.unmarker_profile if args.attack_kind == "unmarker" else None,
+        "unmarker_iterations": args.unmarker_iterations if args.attack_kind == "unmarker" else None,
         "sample_dtype": args.sample_dtype,
         "message_rule": "SHAKE256(protocol_seed | pulsar | sample_index | capacity_bytes)",
         "results_csv": str(csv_path),
