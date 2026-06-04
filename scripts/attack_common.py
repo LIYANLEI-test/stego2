@@ -14,7 +14,9 @@ from PIL import Image, ImageFilter
 
 RESIZE_INTERPOLATION = Image.Resampling.BILINEAR
 ADS_ATTACK_KINDS = ("ads_fgsm", "ads_qdir")
+ECRS_ATTACK_KINDS = ("ecrs_fast", "ecrs_diff")
 ADS_DEFAULT_EPSILON = 0.01
+ECRS_DEFAULT_STRENGTH = 0.5
 
 
 def resize_roundtrip_pil(image: Image.Image, factor: float) -> Image.Image:
@@ -98,6 +100,9 @@ def attack_suffix(attack_kind: str, resize_factor: float = 1.0, attack_factor: f
     if attack_kind in ADS_ATTACK_KINDS:
         epsilon = ADS_DEFAULT_EPSILON if attack_factor is None else attack_factor
         return f"{attack_kind}_eps{fmt(epsilon)}"
+    if attack_kind in ECRS_ATTACK_KINDS:
+        strength = ECRS_DEFAULT_STRENGTH if attack_factor is None else attack_factor
+        return f"{attack_kind}_s{fmt(strength)}"
     raise ValueError(f"unsupported attack kind: {attack_kind}")
 
 
@@ -150,6 +155,11 @@ def apply_attack_pil(
 
         epsilon = ADS_DEFAULT_EPSILON if attack_factor is None else attack_factor
         return apply_ads_pil(image, variant=attack_kind.split("_", 1)[1], epsilon=epsilon)
+    if attack_kind in ECRS_ATTACK_KINDS:
+        from ecrs_attack import apply_ecrs_pil
+
+        strength = ECRS_DEFAULT_STRENGTH if attack_factor is None else attack_factor
+        return apply_ecrs_pil(image, variant=attack_kind.split("_", 1)[1], strength=strength)
     raise ValueError(f"unsupported attack kind: {attack_kind}")
 
 

@@ -22,7 +22,7 @@ if str(MDDM_REF) not in sys.path:
 if str(WORKSPACE_ROOT / "scripts") not in sys.path:
     sys.path.insert(0, str(WORKSPACE_ROOT / "scripts"))
 
-from attack_common import ADS_ATTACK_KINDS, apply_attack_pil, attack_suffix  # noqa: E402
+from attack_common import ADS_ATTACK_KINDS, ECRS_ATTACK_KINDS, apply_attack_pil, attack_suffix  # noqa: E402
 
 
 DEFAULT_PROTOCOL_DIR = Path("/data2/liyanlei/stego_attack_data/protocols/native_identity_v1_20260522")
@@ -50,7 +50,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--attack-kind",
         default="identity",
-        choices=["identity", "resize", "storage", "jpeg", "mblur", "gblur", "regen_vae", "unmarker", *ADS_ATTACK_KINDS],
+        choices=["identity", "resize", "storage", "jpeg", "mblur", "gblur", "regen_vae", "unmarker", *ADS_ATTACK_KINDS, *ECRS_ATTACK_KINDS],
     )
     parser.add_argument("--resize-factor", type=float, default=1.0)
     parser.add_argument("--attack-factor", type=float, default=None)
@@ -245,7 +245,7 @@ def main() -> None:
                 "attack_kind": args.attack_kind,
                 "resize_factor": args.resize_factor if args.attack_kind == "resize" else "",
                 "attack_factor": args.attack_factor
-                if args.attack_kind in {"jpeg", "mblur", "gblur", "regen_vae", *ADS_ATTACK_KINDS}
+                if args.attack_kind in {"jpeg", "mblur", "gblur", "regen_vae", *ADS_ATTACK_KINDS, *ECRS_ATTACK_KINDS}
                 else "",
                 "unmarker_stage": args.unmarker_stage if args.attack_kind == "unmarker" else "",
                 "unmarker_profile": args.unmarker_profile if args.attack_kind == "unmarker" else "",
@@ -270,7 +270,7 @@ def main() -> None:
                     "attack_kind": args.attack_kind,
                     "resize_factor": args.resize_factor if args.attack_kind == "resize" else "",
                     "attack_factor": args.attack_factor
-                    if args.attack_kind in {"jpeg", "mblur", "gblur", "regen_vae", *ADS_ATTACK_KINDS}
+                    if args.attack_kind in {"jpeg", "mblur", "gblur", "regen_vae", *ADS_ATTACK_KINDS, *ECRS_ATTACK_KINDS}
                     else "",
                     "unmarker_stage": args.unmarker_stage if args.attack_kind == "unmarker" else "",
                     "unmarker_profile": args.unmarker_profile if args.attack_kind == "unmarker" else "",
@@ -299,7 +299,7 @@ def main() -> None:
         "attack_kind": args.attack_kind,
         "resize_factor": args.resize_factor if args.attack_kind == "resize" else None,
         "attack_factor": args.attack_factor
-        if args.attack_kind in {"jpeg", "mblur", "gblur", "regen_vae", *ADS_ATTACK_KINDS}
+        if args.attack_kind in {"jpeg", "mblur", "gblur", "regen_vae", *ADS_ATTACK_KINDS, *ECRS_ATTACK_KINDS}
         else None,
         "unmarker_stage": args.unmarker_stage if args.attack_kind == "unmarker" else None,
         "unmarker_profile": args.unmarker_profile if args.attack_kind == "unmarker" else None,

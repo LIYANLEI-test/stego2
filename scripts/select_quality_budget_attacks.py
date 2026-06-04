@@ -21,7 +21,7 @@ from identity_common import image_lpips, image_metrics  # noqa: E402
 
 
 KNOWN_METHODS = ["mddm_128_pilot", "gsd_cifar10", "mas_grdh", "pulsar", "cross"]
-KNOWN_ATTACKS = ["regen_vae", "ads_fgsm", "ads_qdir", "unmarker", "resize", "jpeg", "mblur", "gblur"]
+KNOWN_ATTACKS = ["regen_vae", "ads_fgsm", "ads_qdir", "ecrs_fast", "ecrs_diff", "unmarker", "resize", "jpeg", "mblur", "gblur"]
 BIT_PAYLOAD_METHODS = {"gsd_cifar10", "mas_grdh", "mddm_128_pilot", "pulsar"}
 IMAGE_PAYLOAD_METHODS = {"cross", "rgs"}
 

@@ -32,6 +32,8 @@ ATTACK_FACTORS = {
     "unmarker": ["high_smoke_25", "high_smoke_100"],
     "ads_fgsm": ["0.005", "0.01", "0.02", "0.04", "0.06", "0.08"],
     "ads_qdir": ["0.005", "0.01", "0.02", "0.04", "0.06", "0.08", "0.10"],
+    "ecrs_fast": ["0.75", "1.0", "1.25", "1.5", "2.0", "2.5", "3.0", "3.5"],
+    "ecrs_diff": ["0.10", "0.25", "0.40", "0.60", "0.85", "1.10", "1.50", "2.20", "3.00", "4.00"],
 }
 
 
@@ -57,7 +59,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--gpus", default="0,1,2,3")
     parser.add_argument("--count", type=int, default=10)
     parser.add_argument("--methods", default=",".join(METHODS))
-    parser.add_argument("--attacks", default="resize,jpeg,mblur,gblur,regen_vae,ads_fgsm,ads_qdir")
+    parser.add_argument("--attacks", default="resize,jpeg,mblur,gblur,regen_vae,ads_fgsm,ads_qdir,ecrs_fast,ecrs_diff")
     parser.add_argument("--include-heavy", action="store_true", help="Include CRoSS calibration jobs.")
     parser.add_argument("--poll-seconds", type=float, default=10.0)
     parser.add_argument("--force", action="store_true")
@@ -126,7 +128,7 @@ def attack_args(job: Job) -> list[str]:
         return ["--attack-kind", "regen_vae", "--attack-factor", job.factor]
     if job.attack == "unmarker":
         return ["--attack-kind", "unmarker", *unmarker_args(job.factor)]
-    if job.attack in {"ads_fgsm", "ads_qdir"}:
+    if job.attack in {"ads_fgsm", "ads_qdir", "ecrs_fast", "ecrs_diff"}:
         return ["--attack-kind", job.attack, "--attack-factor", job.factor]
     raise ValueError(f"unsupported attack: {job.attack}")
 

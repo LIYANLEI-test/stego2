@@ -106,6 +106,23 @@ class QualityAndTableTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             attack_common.apply_attack_pil(image, "ads_resize224")
 
+    def test_ecrs_fast_is_registered_and_deterministic_sanitizer(self) -> None:
+        grid = np.arange(16, dtype=np.uint8)
+        xx, yy = np.meshgrid(grid * 11, grid * 7, indexing="xy")
+        array = np.stack([xx, yy, np.full((16, 16), 127, dtype=np.uint8)], axis=2)
+        image = Image.fromarray(array, "RGB")
+
+        self.assertEqual(attack_common.ECRS_ATTACK_KINDS, ("ecrs_fast", "ecrs_diff"))
+        self.assertEqual(attack_common.attack_suffix("ecrs_fast", attack_factor=1.5), "ecrs_fast_s1_5")
+        self.assertIn("ecrs_fast", selector.KNOWN_ATTACKS)
+        self.assertIn("ecrs_diff", selector.KNOWN_ATTACKS)
+
+        first = attack_common.apply_attack_pil(image, "ecrs_fast", attack_factor=1.0)
+        second = attack_common.apply_attack_pil(image, "ecrs_fast", attack_factor=1.0)
+        self.assertEqual(first.size, image.size)
+        self.assertTrue(np.array_equal(np.asarray(first), np.asarray(second)))
+        self.assertGreater(np.abs(np.asarray(first).astype(int) - np.asarray(image).astype(int)).sum(), 0)
+
     def test_selected_matrix_includes_ads_as_adapted_attack_candidates(self) -> None:
         ads_rows = [item for item in SELECTED_ATTACKS if item.attack in attack_common.ADS_ATTACK_KINDS]
         self.assertEqual(
