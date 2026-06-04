@@ -110,10 +110,13 @@ def base_env(gpu: str) -> dict[str, str]:
 
 
 def unmarker_args(factor: str) -> list[str]:
-    parts = factor.split("_")
-    if len(parts) != 3:
-        raise ValueError(f"unmarker factor must be <stage>_<profile>_<iterations>, got {factor!r}")
-    stage, profile, iterations = parts
+    try:
+        stage, rest = factor.split("_", 1)
+        profile, iterations = rest.rsplit("_", 1)
+    except ValueError as exc:
+        raise ValueError(f"unmarker factor must be <stage>_<profile>_<iterations>, got {factor!r}") from exc
+    if stage not in {"high", "low"} or profile not in {"smoke", "paper_like"}:
+        raise ValueError(f"unsupported unmarker factor: {factor!r}")
     return ["--unmarker-stage", stage, "--unmarker-profile", profile, "--unmarker-iterations", iterations]
 
 

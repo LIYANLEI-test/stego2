@@ -3,11 +3,13 @@ from __future__ import annotations
 import csv
 import sys
 import tempfile
+import types
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
 import numpy as np
+import torch
 from PIL import Image
 
 
@@ -122,6 +124,29 @@ class QualityAndTableTests(unittest.TestCase):
         self.assertEqual(first.size, image.size)
         self.assertTrue(np.array_equal(np.asarray(first), np.asarray(second)))
         self.assertGreater(np.abs(np.asarray(first).astype(int) - np.asarray(image).astype(int)).sum(), 0)
+
+    def test_unmarker_branch_restores_grad_inside_no_grad_context(self) -> None:
+        image = Image.fromarray(np.zeros((8, 8, 3), dtype=np.uint8), "RGB")
+        observed = {}
+        fake = types.ModuleType("unmarker_attack")
+
+        def fake_apply_unmarker_core_pil(image_arg, **kwargs):
+            observed["grad_enabled"] = torch.is_grad_enabled()
+            return image_arg.convert("RGB")
+
+        fake.apply_unmarker_core_pil = fake_apply_unmarker_core_pil
+        original = sys.modules.get("unmarker_attack")
+        sys.modules["unmarker_attack"] = fake
+        try:
+            with torch.no_grad():
+                out = attack_common.apply_attack_pil(image, "unmarker", unmarker_iterations=1)
+        finally:
+            if original is None:
+                sys.modules.pop("unmarker_attack", None)
+            else:
+                sys.modules["unmarker_attack"] = original
+        self.assertEqual(out.size, image.size)
+        self.assertTrue(observed.get("grad_enabled"))
 
     def test_selected_matrix_includes_ads_as_adapted_attack_candidates(self) -> None:
         ads_rows = [item for item in SELECTED_ATTACKS if item.attack in attack_common.ADS_ATTACK_KINDS]

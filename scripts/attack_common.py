@@ -149,7 +149,11 @@ def apply_attack_pil(
         }
         if unmarker_reference_dir is not None:
             kwargs["unmarker_root"] = Path(unmarker_reference_dir).resolve()
-        return apply_unmarker_core_pil(image, **kwargs)
+        # UnMarker is an optimization-based transform. Some stego runners apply
+        # image attacks inside no_grad sampling blocks, so restore gradients for
+        # this branch explicitly.
+        with torch.enable_grad():
+            return apply_unmarker_core_pil(image, **kwargs)
     if attack_kind in ADS_ATTACK_KINDS:
         from ads_attack import apply_ads_pil
 
